@@ -1,12 +1,44 @@
 import { Request, Response } from "express";
 import { registerNewUser, loginUser, googleAuth } from "../auth/auth_service.js";
+import { generateToken, verifyToken, verifyRefreshToken } from "../../utils/jwt.handle.js";
+import User from "../users/user_models.js";
 
 const registerCtrl = async ({body}: Request, res: Response) => {
+
     try{
         const responseUser = await registerNewUser(body);
         res.json(responseUser);
     } catch (error: any){
         res.status(500).json({ message: error.message });
+    }
+};
+
+const refreshAccessTokenCtrl = async (req: Request, res: Response) => {
+    try {
+        const { refreshToken } = req.body;
+        console.log("Refresh token:", refreshToken); 
+
+        if (!refreshToken) {
+            return res.status(400).json({ message: "Refresh token es requerido" });
+        }
+
+        const token = verifyRefreshToken(refreshToken) as { id: string };
+
+        const user = await User.findOne({ refreshToken });
+
+        if (!user) {
+            return res.status(403).json({ message: "Refresh token inválido o usuario no encontrado" });
+        }
+
+
+        const newAccessToken = generateToken(user.email, user.name);
+
+        console.log("Nuevo token de acceso:", newAccessToken);
+
+        return res.json({ accessToken: newAccessToken });
+    } catch (error: any) {
+        console.error("Error al renovar el token de acceso:", error);
+        return res.status(403).json({ message: "Refresh token inválido o expirado" });
     }
 };
 
@@ -83,4 +115,4 @@ const googleAuthCallback = async (req: Request, res: Response) => {
 };
 
 
-export { registerCtrl, loginCtrl,googleAuthCtrl, googleAuthCallback };
+export { registerCtrl, loginCtrl,googleAuthCtrl, googleAuthCallback, refreshAccessTokenCtrl };

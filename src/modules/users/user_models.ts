@@ -21,6 +21,11 @@ const userSchema = new mongoose.Schema(
             unique: true
         },
         googleId: { type: String },
+        
+        refreshToken: {
+            type: String,
+            default: null,
+        },
     },
     {
         versionKey: false,
